@@ -40,7 +40,7 @@ resource "aws_security_group" "allow_tls" {
     from_port        = 22
     to_port          = 22
     protocol         = "tcp"
-    cidr_blocks      = [aws_vpc.main.cidr_block]
+    cidr_blocks      = ["0.0.0.0/0"]
   }
 
   ingress {
@@ -48,7 +48,7 @@ resource "aws_security_group" "allow_tls" {
     from_port        = 8080
     to_port          = 80808
     protocol         = "tcp"
-    cidr_blocks      = [aws_vpc.main.cidr_block]
+    cidr_blocks      = ["0.0.0.0/0"]
   }
 
   egress {
@@ -74,4 +74,37 @@ resource "aws_instance" "jenkins_server" {
   tags = {
     Name = "jenkins_server"
   }
+}
+
+resource "null_resource" "jenkins_script" {
+  
+  #ssh into ec2 instance
+
+  connection {
+    type = "ssh"
+    user = "ubuntu"
+    private_key = file("D:/AWS/AWS_Credentials/test_terraform_01_28092022.pem")
+    host = aws_instance.jenkins_server.public_ip
+  }
+
+  #copy the install_jenkins.sh file from local to ec2 instance
+
+  provisioner "file" {
+    source = "install_jenkins.sh"
+    destinstaion = "/tmp/install_jenkins.sh"
+  }
+
+  #set permission and execute the install_jenkins.sh file
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo chmod +x /tmp/install_jenkins.sh",
+      "sh /tmp/install_jenkins.sh"
+    ]
+  }
+
+  depends_on = [
+    aws_instance.jenkins_server
+  ]
+
 }
